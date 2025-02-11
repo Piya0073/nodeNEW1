@@ -1,6 +1,3 @@
-
-require ("dotenv").config();
-
 const express = require('express');
 const Sequelize = require('sequelize');
 const app = express();
@@ -13,7 +10,7 @@ app.use(express());
 const sequelize = new Sequelize('database', 'username', 'password', {
   host: 'localhost',
   dialect: 'sqlite',
-  storage: './Database/Book.sqlite',//สร้างที่เก็บ databases
+  storage: './Database/SQBooks.sqlite',
 });
 
 
@@ -35,7 +32,7 @@ const book = sequelize.define('Book', {
 });
 
 // create the book table if it doesn't exist
-sequelize.sync();
+sequelize.syne();
 
 // route to get all books
 app.get('/books', (req, res) => {
@@ -110,5 +107,5 @@ app.delete('/books/:id', (req, res) => {
 
 const port = process.env.PORT || 3000;
 app.listen(port, () => {
-    console.log(`Example app listening at http://localhost:${port}`);
+    console.log(`Server is running on port ${port}`);
 });
