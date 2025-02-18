@@ -2,110 +2,99 @@ const express = require('express');
 const Sequelize = require('sequelize');
 const app = express();
 
-//
-app.use(express());
+app.use(express.json()); // ใช้ middleware สำหรับ JSON request
 
-// create a connection to   the database
-
-const sequelize = new Sequelize('database', 'username', 'password', {
-  host: 'localhost',
+// สร้างการเชื่อมต่อฐานข้อมูล SQLite
+const sequelize = new Sequelize({
   dialect: 'sqlite',
-  storage: './Database/SQBooks.sqlite',
+  storage: './Database/Books.sqlite',
 });
 
+// กำหนด Model สำหรับตารางหนังสือ
+const Book = sequelize.define('Book', {
+  id: {
+    type: Sequelize.INTEGER,
+    autoIncrement: true,
+    primaryKey: true,
+  },
+  title: {
+    type: Sequelize.STRING,
+    allowNull: false,
+  },
+  author: {
+    type: Sequelize.STRING,
+    allowNull: false,
+  },
+});
 
-// define the book model 
-const book = sequelize.define('Book', {
-    id: {
-        type: Sequelize.INTEGER,
-        autoIncrement: true,
-        primaryKey: true
-    },
-    title: {
-        type: Sequelize.STRING,
-        allowNull: false
-    },
-    author: {
-        type: Sequelize.STRING,
-        allowNull: false
+// สร้างตารางถ้ายังไม่มี
+sequelize.sync()
+  .then(() => console.log('Database & tables created!'))
+  .catch(err => console.error('Error syncing database:', err));
+
+// ดึงข้อมูลหนังสือทั้งหมด
+app.get('/books', async (req, res) => {
+  try {
+    const books = await Book.findAll();
+    res.json(books);
+  } catch (err) {
+    res.status(500).send(err);
+  }
+});
+
+// ดึงข้อมูลหนังสือตาม ID
+app.get('/books/:id', async (req, res) => {
+  try {
+    const book = await Book.findByPk(req.params.id);
+    if (!book) {
+      return res.status(404).send('Book not found');
     }
+    res.json(book);
+  } catch (err) {
+    res.status(500).send(err);
+  }
 });
 
-// create the book table if it doesn't exist
-sequelize.syne();
-
-// route to get all books
-app.get('/books', (req, res) => {
-    book.findAll().then(books => {
-        res.json(books);
-    }).catch(err => {
-        res.status(500).send(err);
-    });
+// เพิ่มหนังสือใหม่
+app.post('/books', async (req, res) => {
+  try {
+    const book = await Book.create(req.body);
+    res.json(book);
+  } catch (err) {
+    res.status(500).send(err);
+  }
 });
 
-// route to get a book by id
-
-app.get('/books/:id', (req, res) => {
-    book.findByPk(req.params.id).then(book => {
-        if (!book) {
-            res.status(404).send('Book not found');
-        } else {
-            res.json(book);
-        }
-    }).catch(err => {
-        res.status(500).send(err);
-    });
+// อัปเดตข้อมูลหนังสือตาม ID
+app.put('/books/:id', async (req, res) => {
+  try {
+    const book = await Book.findByPk(req.params.id);
+    if (!book) {
+      return res.status(404).send('Book not found');
+    }
+    await book.update(req.body);
+    res.json(book);
+  } catch (err) {
+    res.status(500).send(err);
+  }
 });
 
-// route to create a new book
-
-app.post('/books', (req, res) => {
-    book.create(req.body).then(book => {
-        res.json(book);
-    }).catch(err => {
-        res.status(500).send(err);
-    });
+// ลบหนังสือตาม ID
+app.delete('/books/:id', async (req, res) => {
+  try {
+    const book = await Book.findByPk(req.params.id);
+    if (!book) {
+      return res.status(404).send('Book not found');
+    }
+    await book.destroy();
+    res.send({ message: 'Book deleted successfully' });
+  } catch (err) {
+    res.status(500).send(err);
+  }
 });
 
-// route to update a book
-
-app.put('/books/:id', (req, res) => {
-    book.findByPk(req.params.id).then(book => {
-        if (!book) {
-            res.status(404).send('Book not found');
-        } else {
-            book.update(req.body).then(() => {
-                res.json(book);
-            }).catch(err => {
-                res.status(500).send(err);
-            });
-        }
-    }).catch(err => {
-        res.status(500).send(err);
-    });
-});
-
-// route to delete a book
-
-app.delete('/books/:id', (req, res) => {
-    book.findByPk(req.params.id).then(book => {
-        if (!book) {
-            res.status(404).send('Book not found');
-        } else {
-            book.destroy().then(() => {
-                res.send(book);
-            }).catch(err => {
-                res.status(500).send(err);
-            });
-        }
-    }).catch(err => {
-        res.status(500).send(err);
-    });
-});
-
-// start the server
-
+// เริ่มเซิร์ฟเวอร์
 const port = process.env.PORT || 3000;
 app.listen(port, () => {
-    console.log(`Server is running on port ${port}`);
+  console.log(`Server is running on port ${port}`);
 });
